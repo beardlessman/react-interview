@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { UsersDashboard } from '../example';
+import { UsersDashboard } from '../tasks/example';
 
 const root = document.getElementById('root');
 
