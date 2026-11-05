@@ -39,7 +39,7 @@ const tasks: Task[] = Object.entries(taskModules)
     return Component ? { id, Component } : null;
   })
   .filter((task): task is Task => task !== null)
-  .sort((a, b) => a.id.localeCompare(b.id));
+  .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
 const tasksById = Object.fromEntries(tasks.map((task) => [task.id, task]));
 
