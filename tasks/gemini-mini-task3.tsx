@@ -1,21 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+function throttle(fn: () => void, wait: number) {
+  let lastCall = 0;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const throttled = () => {
+    const now = Date.now();
+    const remaining = wait - (now - lastCall);
+
+    if (remaining <= 0) {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      lastCall = now;
+      fn();
+      return;
+    }
+
+    if (timeoutId === null) {
+      timeoutId = setTimeout(() => {
+        lastCall = Date.now();
+        timeoutId = null;
+        fn();
+      }, remaining);
+    }
+  };
+
+  throttled.cancel = () => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+
+  return throttled;
+}
 
 export const WindowTracker: React.FC = () => {
   const [width, setWidth] = useState(window.innerWidth);
-  const [logCount, setLogCount] = useState(0);
-
-  const handleResize = () => {
-    setWidth(window.innerWidth);
-    // Хотим логировать каждые 10 ресайзов
-    if (logCount % 10 === 0) {
-      console.log('Width updated:', window.innerWidth);
-    }
-    setLogCount(logCount + 1);
-  };
+  const resizeCountRef = useRef(0);
 
   useEffect(() => {
-    window.addEventListener('resize', handleResize);
-  }, []); // Пустой массив зависимостей
+    const handleResize = () => {
+      setWidth(window.innerWidth);
 
-  return <div>Window width: {width} (Events logged: {logCount})</div>;
+      resizeCountRef.current += 1;
+      // Хотим логировать каждые 10 ресайзов
+      if (resizeCountRef.current % 10 === 0) {
+        console.log('Width updated:', window.innerWidth);
+      }
+    };
+
+    const onResize = throttle(handleResize, 100);
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      onResize.cancel();
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
+  return <div>Window width: {width}</div>;
 };

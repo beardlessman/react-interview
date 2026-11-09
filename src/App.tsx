@@ -1,6 +1,7 @@
 import { type ComponentType } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { QuestionsPage } from './QuestionsPage';
 import './markdown.css';
 
 const taskModules = import.meta.glob('../tasks/*.tsx', { eager: true }) as Record<
@@ -64,14 +65,16 @@ const buttonLinkStyle = {
 function HomePage() {
   return (
     <main style={{ padding: 24, maxWidth: 640 }}>
-      <h1 style={{ marginTop: 0 }}>React Interview Tasks</h1>
-      <p style={{ color: '#444' }}>Выберите задание:</p>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        {tasks.map((task) => (
+      <h1 style={{ marginTop: 0 }}>React Interview</h1>
+
+      <section style={{ marginBottom: 32 }}>
+        <h2>JS Questions</h2>
+        <p style={{ color: '#444' }}>Theory questions with expandable answers.</p>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Link
-            key={task.id}
-            to={`/${task.id}`}
+            to="/questions"
             style={{
+              display: 'inline-block',
               padding: '10px 16px',
               border: '1px solid #bbb',
               borderRadius: 8,
@@ -80,10 +83,47 @@ function HomePage() {
               textDecoration: 'none',
             }}
           >
-            {task.id}
+            English
           </Link>
-        ))}
-      </div>
+          <Link
+            to="/questions/ru"
+            style={{
+              display: 'inline-block',
+              padding: '10px 16px',
+              border: '1px solid #bbb',
+              borderRadius: 8,
+              background: '#111',
+              color: '#fff',
+              textDecoration: 'none',
+            }}
+          >
+            Русский
+          </Link>
+        </div>
+      </section>
+
+      <section>
+        <h2>React Interview Tasks</h2>
+        <p style={{ color: '#444' }}>Выберите задание:</p>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {tasks.map((task) => (
+            <Link
+              key={task.id}
+              to={`/${task.id}`}
+              style={{
+                padding: '10px 16px',
+                border: '1px solid #bbb',
+                borderRadius: 8,
+                background: '#111',
+                color: '#fff',
+                textDecoration: 'none',
+              }}
+            >
+              {task.id}
+            </Link>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
@@ -171,6 +211,8 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/questions" element={<QuestionsPage locale="en" />} />
+        <Route path="/questions/ru" element={<QuestionsPage locale="ru" />} />
         <Route path="/:taskId/solution" element={<SolutionPage />} />
         <Route path="/:taskId" element={<TaskPage />} />
       </Routes>
