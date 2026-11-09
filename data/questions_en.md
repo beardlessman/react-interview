@@ -12,11 +12,16 @@ Typical questions with short answers.
 - `let` — block scope, TDZ until declaration, cannot be redeclared in the same scope.
 - `const` — like `let`, but the binding cannot be reassigned (object contents can still be mutated).
 
-```js
-var a = 1;
-let b = 2;
-const c = 3;
-```
+`var` — before ES6.  
+`var` variables can be declared without assigning a value (they will be `undefined`).  
+They have function scope: available only within the current function, or on the global object if there is no function.  
+Declaring `var` outside functions makes it a global variable.  
+You can access it before the declaration line (variable hoisting).
+
+Unlike `let`, `const` cannot be declared without a value.  
+You cannot access `let` and `const` before their declaration in the code.  
+Both have block scope and do not become part of the global object. Block scope prevents reading the variable outside the block where it was declared.  
+More detail: https://doka.guide/js/var-let/
 
 ### Explain the concept of “hoisting”
 
@@ -177,6 +182,15 @@ A function calls itself. Needed for trees, factorial, traversing nested objects.
 ### Variable scope?
 
 Where a variable is visible: global, function (`var`), block (`let`/`const`). An inner scope sees the outer one (scope chain).
+
+“Boxes” inside which variables are accessible.  
+Global: variables are available from any part of the program.  
+Module: a variable is available within an ES module.  
+Block: `const`/`let` are available inside braces `{ }`, for example in `if` / `switch`.  
+Function: within the function body.  
+
+Scopes are implemented via the lexical environment: it tracks the visibility of variables and functions at a given point in the code. The lexical environment also stores a reference to the outer/parent lexical environment, so a function can access outer variables.  
+Scopes help limit access to data and structure code. One of the most interesting uses of this mechanism is a closure.
 
 ### What are closures? Why are they important? Example?
 
@@ -764,6 +778,17 @@ Always runs after `try/catch` — on success, on error, and on `return` (before 
 
 ## Promise, async/await
 
+### Event Loop
+
+JS in the browser is single-threaded. The engine runs a loop:  
+It executes synchronous code (call stack).  
+When the stack is empty — first microtasks (`Promise.then`, `queueMicrotask`, the continuation after `async`/`await`).  
+Then one macrotask from the queue (`setTimeout`, `setInterval`, DOM events, I/O).  
+Between macrotasks the browser may paint a frame.  
+Again microtasks → next macrotask → …  
+Practical takeaway: `await` / `.then` continue before `setTimeout(fn, 0)`. Long synchronous code blocks both the UI and timers.  
+In a project: wrap input handlers in a macrotask via `setTimeout` (e.g. `lodash.debounce`).
+
 ### What does an asynchronous action mean?
 
 Does not block the main thread: the result arrives later (network, timers, I/O).
@@ -914,3 +939,475 @@ fetch(url, {
 ### Can you use `fetch` with `async/await`?
 
 Yes — it is a regular promise: `const res = await fetch(...)`.
+
+---
+
+## Prototypes, inheritance
+
+### Explain the concept of prototypal inheritance in JavaScript
+
+Every object has a hidden link to another object — its prototype. If a property is missing on the object itself, the engine looks it up along the prototype chain (`[[Prototype]]`). Objects reuse behavior this way without copying methods onto every instance.
+
+### What is a prototype for?
+
+To share common methods and properties across many objects. Methods live once on the prototype; instances only reference it — less memory and a single place to update behavior.
+
+### How do you assign a prototype to an object?
+
+```js
+const proto = { greet() { return "hi"; } };
+const obj = Object.create(proto);           // preferred
+Object.setPrototypeOf(obj, proto);          // change later
+const obj2 = { __proto__: proto };          // object literal (legacy style)
+```
+
+### What is `__proto__`?
+
+A getter/setter for an object’s internal `[[Prototype]]`. Handy for debugging; in real code prefer `Object.getPrototypeOf` / `Object.setPrototypeOf` / `Object.create`.
+
+### What type can the value of `__proto__` be?
+
+Only an object or `null`. Assigning a primitive is ignored; `null` means “end of the chain” (as with `Object.prototype`).
+
+### What is the `prototype` property on functions in JavaScript?
+
+Every function (except arrow functions) has a `prototype` property — the object that becomes `[[Prototype]]` of instances created with `new Fn()`. Shared methods usually go there: `Fn.prototype.method = …`.
+
+### What is `Object.prototype` and which methods does it contain?
+
+The root of almost all objects — the end of the prototype chain. Common methods:
+
+- `toString`, `valueOf`
+- `hasOwnProperty`
+- `isPrototypeOf`
+- `propertyIsEnumerable`
+- `toLocaleString`
+
+### How does `this` work with object prototypes?
+
+`this` is set at call time, not by where the method is defined. With `obj.method()`, the method may be found on the prototype, but `this` is still `obj` (the receiver).
+
+### How do you set a prototype for a constructor?
+
+```js
+function Animal(name) { this.name = name; }
+Animal.prototype.speak = function () { return this.name; };
+
+function Dog(name) { Animal.call(this, name); }
+Dog.prototype = Object.create(Animal.prototype);
+Dog.prototype.constructor = Dog;
+```
+
+Or with `class Dog extends Animal`.
+
+### Built-in prototypes on objects?
+
+Yes. For example:
+
+- arrays → `Array.prototype` → `Object.prototype`
+- functions → `Function.prototype` → `Object.prototype`
+- dates → `Date.prototype`
+- string objects → `String.prototype`
+
+Object literals `{}` have `Object.prototype` as their prototype.
+
+### Prototypes for primitives? Example
+
+Primitives are not objects and have no prototype of their own, but calling a method temporarily wraps them:
+
+```js
+"hi".toUpperCase(); // temporary new String("hi"), method from String.prototype
+(1.5).toFixed(1);   // Number.prototype
+true.toString();    // Boolean.prototype
+```
+
+### Where do primitives get their methods and properties from?
+
+Autoboxing: the engine briefly wraps the primitive in an object (`String`/`Number`/`Boolean`) and reads methods from the matching `.prototype`. The wrapper is discarded afterward — so assigning a property on a primitive does not stick.
+
+### How do you create inheritance in JavaScript using prototypes?
+
+1. Call the parent constructor with `Parent.call(this, …)`.
+2. Link prototypes: `Child.prototype = Object.create(Parent.prototype)`.
+3. Restore `Child.prototype.constructor = Child`.
+
+The modern form is `class Child extends Parent`.
+
+### How do you check whether an object is an instance of a given class (constructor function)?
+
+```js
+obj instanceof Constructor;                 // true/false via the prototype chain
+Constructor.prototype.isPrototypeOf(obj);
+Object.getPrototypeOf(obj) === Constructor.prototype; // direct prototype only
+```
+
+### How do you change an object’s prototype in JavaScript?
+
+```js
+Object.setPrototypeOf(obj, newProto); // works, but slow on hot paths
+const obj2 = Object.create(newProto); // better: create with the right prototype
+```
+
+`obj.__proto__ = newProto` is the legacy approach.
+
+### How do you check whether a property exists on an object or its prototype?
+
+```js
+"key" in obj;                    // own or inherited
+obj.hasOwnProperty("key");       // own only
+Object.hasOwn(obj, "key");       // modern replacement for hasOwnProperty
+obj.key !== undefined;           // weak: cannot tell missing from undefined
+```
+
+---
+
+## Classes
+
+### How do you declare a class? What are the main building blocks?
+
+```js
+class User {
+  field = 1;              // instance fields
+  constructor(name) { … } // constructor
+  method() { … }          // prototype methods
+  get x() { … }           // getter
+  set x(v) { … }          // setter
+  static create() { … }   // statics
+  #private = 0;           // private fields
+}
+```
+
+### What is `constructor` for?
+
+Instance initialization on `new`: accept arguments, set fields, call `super` in a subclass. Runs automatically once per created object.
+
+### How do classes work under the hood? What happens when a class is created and methods are declared?
+
+`class` is sugar over constructor functions. The class becomes the `User` function; methods are placed on `User.prototype` (non-enumerable); `constructor` is that function itself. Class fields (`field = …`) are initialized on the instance during `new`. Classes are not hoisted like `function declaration` (TDZ applies).
+
+### How do you invoke a created class?
+
+Only with `new`:
+
+```js
+const user = new User("Ann");
+```
+
+Calling without `new` throws `TypeError`.
+
+### What does invoking a class return?
+
+`new User(…)` returns the created instance. If `constructor` explicitly returns an object, that object is returned; a primitive `return` is ignored.
+
+### Getters and setters. What are they for?
+
+```js
+class Box {
+  get size() { return this._size; }
+  set size(v) { if (v >= 0) this._size = v; }
+}
+```
+
+Controlled property access: validation, computed values, hiding internals. From the outside they look like a normal field: `box.size = 10`.
+
+### How do you create a property in a class?
+
+- In `constructor`: `this.name = name`
+- Class fields: `name = "default"` / `name;`
+- Private: `#name = …`
+- Static: `static count = 0`
+- Via getter/setter
+
+### Which keyword is used for class inheritance?
+
+`extends`:
+
+```js
+class Dog extends Animal { … }
+```
+
+### Method overriding?
+
+Declare a method with the same name in the child class. To call the parent version — `super.method(…)`.
+
+### The `super` keyword?
+
+A reference to the parent: `super.method()` in methods, `super(…)` in the constructor to call the parent `constructor`.
+
+### Constructor overriding?
+
+Yes — declare your own `constructor` in the subclass. You must call `super(…)` before touching `this`.
+
+### What default constructor does a child class get?
+
+If none is declared:
+
+```js
+constructor(...args) {
+  super(...args);
+}
+```
+
+It simply forwards arguments to the parent.
+
+### `super` in the constructor
+
+In a subclass you cannot use `this` / `return` before `super(…)`. `super(…)` runs the parent constructor and prepares the instance. A base class does not need `super` in its constructor.
+
+### Static methods and properties?
+
+They belong to the class itself, not instances: `User.create()`, `User.count`. Inherited via `extends`, available as `Child.create()`. Calling them on an instance is not the normal path. Inside a static, `this` is the class.
+
+### Protected properties. What for, and how do you make a property protected?
+
+“Protected” (by convention) means for the class and subclasses, not for outside code. JS has no `protected` modifier; common patterns:
+
+- `_` prefix: `this._token` (convention)
+- or `#private` — truly inaccessible outside (and not directly in subclasses)
+- alternatively: a `WeakMap` keyed by the instance
+
+Used to hide internal API while still letting subclasses reach it (via `_` or shared methods).
+
+### Why were mixins invented? How do you implement them?
+
+To mix in behavior from several sources when a single `extends` is not enough:
+
+```js
+const sayHi = (Base) => class extends Base {
+  hi() { return "hi"; }
+};
+class User extends sayHi(Object) {}
+```
+
+Or `Object.assign(Target.prototype, mixin)`. A mixin is a reusable set of methods without a rigid hierarchy.
+
+### Multiple inheritance in JavaScript?
+
+No native `extends A, B`. One prototype / one `extends`. Workarounds: mixins, composition, delegating to another object.
+
+### Encapsulation?
+
+Hiding internal implementation. In classes: private fields `#x`, closures in factories, not exporting module internals. Outside — only the public API.
+
+### `instanceof`
+
+```js
+obj instanceof Class; // true if Class.prototype is in obj’s prototype chain
+```
+
+Works with `class` and function constructors. Across iframes/realms it may be `false` for a “same” class. Narrower checks: `Object.hasOwn` / duck typing.
+
+---
+
+## DOM and events
+
+### Can you explain the Document Object Model (DOM)?
+
+DOM is the browser’s in-memory object representation of an HTML/XML document. A tree of nodes you can query, mutate, and listen to from JS.
+
+### DOM structure?
+
+A tree of nodes: `document` → `html` → `head`/`body` → elements, text, comments. Nodes link via parent/children/siblings. Types: `Element`, `Text`, `Comment`, `Document`, etc.
+
+### DOM navigation?
+
+- `parentNode` / `parentElement`
+- `childNodes` / `children`
+- `firstChild` / `firstElementChild`
+- `lastChild` / `lastElementChild`
+- `nextSibling` / `nextElementSibling`
+- `previousSibling` / `previousElementSibling`
+
+`*Element*` — elements only; without `Element` — any nodes (including text).
+
+### What is `childNodes`, and what does it contain?
+
+A live collection (`NodeList`) of all child nodes: elements, text nodes (spaces/newlines), comments. For elements only, prefer `children` (`HTMLCollection`).
+
+### What is a live collection?
+
+A collection that automatically reflects DOM changes (`HTMLCollection` from `getElementsBy*`, also `childNodes`). `querySelectorAll` returns a static `NodeList` — a snapshot at query time.
+
+### Which DOM methods do you know for finding elements?
+
+- `getElementById`
+- `getElementsByClassName`, `getElementsByTagName`, `getElementsByName`
+- `querySelector`, `querySelectorAll`
+- `closest` (walk up ancestors)
+- `matches` (test a selector)
+
+### How does `querySelector` differ from `querySelectorAll`?
+
+`querySelector` — the first match or `null`.  
+`querySelectorAll` — all matches (static `NodeList`).
+
+### Difference between `getElements*` and `querySelectorAll`?
+
+- `getElements*` — live `HTMLCollection`, simple criteria only (class/tag/name).
+- `querySelectorAll` — full CSS selectors, static snapshot.
+- `getElementById` — a single element by id, not a collection.
+
+### How do you change the text content of an HTML element?
+
+```js
+el.textContent = "Hello"; // safe, text only
+el.innerText = "Hello";   // respects styles/visibility, slower
+el.innerHTML = "<b>Hi</b>"; // HTML, XSS risk
+```
+
+### How do you add a new element to the DOM?
+
+```js
+const li = document.createElement("li");
+li.textContent = "item";
+parent.append(li);        // or appendChild, prepend, before, after
+```
+
+### What’s the difference between `element.append()` and `element.appendChild()`?
+
+- `append` — multiple arguments, accepts nodes and strings, returns `undefined`.
+- `appendChild` — a single node only, returns the inserted node.
+- `append` is newer and more convenient.
+
+### How do you remove an element from the DOM?
+
+```js
+el.remove();
+parent.removeChild(el);
+```
+
+### Which method creates a new DOM element?
+
+`document.createElement("div")`. For text — `document.createTextNode("…")`. From an HTML string — `template` / `insertAdjacentHTML` (watch for XSS).
+
+### How do you insert an element before another element in the DOM?
+
+```js
+parent.insertBefore(newNode, referenceNode);
+referenceNode.before(newNode);
+referenceNode.insertAdjacentElement("beforebegin", newNode);
+```
+
+### What’s the difference between `innerHTML` and `innerText`?
+
+- `innerHTML` — HTML markup as a string (parses tags).
+- `innerText` — visible text respecting CSS (skips `display:none`), triggers reflow.
+- For plain text, prefer `textContent`.
+
+### Which method clones a node?
+
+```js
+const copy = el.cloneNode(true); // true — deep clone with children
+```
+
+Listeners added via `addEventListener` are not copied.
+
+### Working with classes on DOM elements?
+
+```js
+el.classList.add("active");
+el.classList.remove("active");
+el.classList.toggle("active");
+el.classList.contains("active");
+el.classList.replace("old", "new");
+```
+
+`className` is the whole class string (less convenient).
+
+### What is an event in the DOM context, and how do you handle it?
+
+A signal about a user or browser action (`click`, `input`, `submit`, …). Handle with `el.addEventListener("click", handler)` or `el.onclick = handler`. The handler receives an `event` object.
+
+### What is event delegation in JavaScript?
+
+Attach one listener to a common ancestor and handle child events via bubbling:
+
+```js
+list.addEventListener("click", (e) => {
+  const item = e.target.closest("li");
+  if (!item || !list.contains(item)) return;
+  // handle item
+});
+```
+
+Benefits: fewer listeners; works for dynamically added elements.
+
+### What is the process of listening for events in JavaScript called?
+
+Event listening / subscribing to events: registering listeners that run when an event occurs.
+
+### How can you add an event handler to an element in JavaScript?
+
+```js
+el.addEventListener("click", handler);           // preferred
+el.addEventListener("click", handler, true);     // capture phase
+el.addEventListener("click", handler, { once: true, passive: true });
+el.onclick = handler;                            // single property handler
+```
+
+### Which ways do you know to remove an event handler from an element?
+
+```js
+el.removeEventListener("click", handler); // same function reference and capture flags
+el.onclick = null;                        // for property handlers
+AbortController: signal → abort()         // if the listener was created with { signal }
+```
+
+You cannot remove an anonymous function — keep a reference.
+
+### What is the event object in JavaScript? Which properties does it contain?
+
+An object with event data passed to the handler. Commonly used:
+
+- `type`, `target`, `currentTarget`
+- `clientX` / `clientY`, `key`, `code`
+- `preventDefault()`, `stopPropagation()`, `stopImmediatePropagation()`
+- `bubbles`, `defaultPrevented`, `eventPhase`
+- `timestamp`
+
+### Event phases? What are they for?
+
+Three phases: capturing → target → bubbling. They decide at which tree level and in which order you catch the event. Capture (`addEventListener(…, true)`) runs toward the target; bubble runs afterward. Delegation usually relies on bubbling.
+
+### How do you stop event bubbling in JavaScript?
+
+```js
+e.stopPropagation();          // do not continue through the tree
+e.stopImmediatePropagation(); // also skip other listeners on the same element
+```
+
+`stopPropagation` does not undo listeners already run on the current node.
+
+### How can you cancel the default action when an event occurs? Where is it used?
+
+```js
+e.preventDefault();
+```
+
+Cancels browser behavior: link navigation, form submit, context menu, drag-and-drop, etc. Does not affect phases. Some events need a non-`passive` listener (e.g. `touchmove`).
+
+### How can you create and dispatch a custom event in JavaScript?
+
+```js
+const ev = new CustomEvent("user:save", {
+  detail: { id: 1 },
+  bubbles: true,
+  cancelable: true,
+});
+el.dispatchEvent(ev);
+```
+
+Or `new Event("open")` without `detail`. Listen with normal `addEventListener("user:save", …)`.
+
+### Event capturing and bubbling
+
+On click, the event travels the DOM in three stages:
+
+1. **Capture** — top-down: `window` → … → parent → target.
+2. **Target** — on the element itself.
+3. **Bubble** — bottom-up: target → parents → `document`.
+
+- `e.stopPropagation()` — stop further propagation through the tree.
+- `e.preventDefault()` — cancel the browser action (link navigation, submit, etc.); does not affect phases.
+
+In projects we mostly work with bubbling and stop it when needed. Example: closing an edit modal by clicking the overlay so the click does not hit handlers underneath. Typical case: a row click opens an edit popup; a delete control opens a delete dialog (`stopPropagation` on the button so both do not fire).
