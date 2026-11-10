@@ -1411,3 +1411,19 @@ On click, the event travels the DOM in three stages:
 - `e.preventDefault()` — cancel the browser action (link navigation, submit, etc.); does not affect phases.
 
 In projects we mostly work with bubbling and stop it when needed. Example: closing an edit modal by clicking the overlay so the click does not hit handlers underneath. Typical case: a row click opens an edit popup; a delete control opens a delete dialog (`stopPropagation` on the button so both do not fire).
+
+### How can browser tabs exchange information?
+
+1. If the tabs are open on the same site (same origin)
+- BroadcastChannel API — one tab sends a message, and the others receive it immediately.
+- localStorage — one tab writes to storage, and the others get a `window.addEventListener("storage", ...)` event. Example: logging out in one tab logs you out in all of them.
+- Shared Workers — a special kind of web worker (scripts that run in the background).
+- Service Workers — can also intercept requests and broadcast messages (`postMessage`) to every open tab (client).
+
+2. If one tab opened another (direct connection)
+
+If a tab was opened via `window.open()` or a link with `target="_blank"`, the two tabs hold a direct reference to each other:
+- The parent tab gets a reference to the child window.
+- The child tab can reach the parent via `window.opener`.
+- Same origin — they can call each other’s functions and read each other’s variables directly.
+- Different origins — they can talk via `window.postMessage()`.
