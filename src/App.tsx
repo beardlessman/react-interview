@@ -97,6 +97,12 @@ const exams = [
     enPath: '/state-managers-questions',
     ruPath: '/state-managers-questions/ru',
   },
+  {
+    title: 'Frontend Questions',
+    description: 'HTML, CSS, browser, performance, security, tooling.',
+    enPath: '/frontend-questions',
+    ruPath: '/frontend-questions/ru',
+  },
 ] as const;
 
 function HomePage() {
@@ -236,6 +242,8 @@ export function App() {
         <Route path="/typescript-questions/ru" element={<QuestionsPage subject="typescript" locale="ru" />} />
         <Route path="/state-managers-questions" element={<QuestionsPage subject="state-managers" locale="en" />} />
         <Route path="/state-managers-questions/ru" element={<QuestionsPage subject="state-managers" locale="ru" />} />
+        <Route path="/frontend-questions" element={<QuestionsPage subject="frontend" locale="en" />} />
+        <Route path="/frontend-questions/ru" element={<QuestionsPage subject="frontend" locale="ru" />} />
         <Route path="/:taskId/solution" element={<SolutionPage />} />
         <Route path="/:taskId" element={<TaskPage />} />
       </Routes>
