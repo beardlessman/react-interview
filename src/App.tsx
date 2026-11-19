@@ -62,80 +62,62 @@ const buttonLinkStyle = {
   textDecoration: 'none',
 } as const;
 
+const examLinkStyle = {
+  display: 'inline-block',
+  padding: '10px 16px',
+  border: '1px solid #bbb',
+  borderRadius: 8,
+  background: '#111',
+  color: '#fff',
+  textDecoration: 'none',
+} as const;
+
+const exams = [
+  {
+    title: 'JS Questions',
+    description: 'Theory questions with expandable answers.',
+    enPath: '/questions',
+    ruPath: '/questions/ru',
+  },
+  {
+    title: 'React Questions',
+    description: 'React theory exam with expandable answers.',
+    enPath: '/react-questions',
+    ruPath: '/react-questions/ru',
+  },
+  {
+    title: 'TypeScript Questions',
+    description: 'TypeScript theory exam with expandable answers.',
+    enPath: '/typescript-questions',
+    ruPath: '/typescript-questions/ru',
+  },
+  {
+    title: 'State Managers',
+    description: 'Redux, Redux Toolkit, MobX and related patterns.',
+    enPath: '/state-managers-questions',
+    ruPath: '/state-managers-questions/ru',
+  },
+] as const;
+
 function HomePage() {
   return (
     <main style={{ padding: 24, maxWidth: 640 }}>
       <h1 style={{ marginTop: 0 }}>React Interview</h1>
 
-      <section style={{ marginBottom: 32 }}>
-        <h2>JS Questions</h2>
-        <p style={{ color: '#444' }}>Theory questions with expandable answers.</p>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Link
-            to="/questions"
-            style={{
-              display: 'inline-block',
-              padding: '10px 16px',
-              border: '1px solid #bbb',
-              borderRadius: 8,
-              background: '#111',
-              color: '#fff',
-              textDecoration: 'none',
-            }}
-          >
-            English
-          </Link>
-          <Link
-            to="/questions/ru"
-            style={{
-              display: 'inline-block',
-              padding: '10px 16px',
-              border: '1px solid #bbb',
-              borderRadius: 8,
-              background: '#111',
-              color: '#fff',
-              textDecoration: 'none',
-            }}
-          >
-            Русский
-          </Link>
-        </div>
-      </section>
-
-      <section style={{ marginBottom: 32 }}>
-        <h2>React Questions</h2>
-        <p style={{ color: '#444' }}>React theory exam with expandable answers.</p>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Link
-            to="/react-questions"
-            style={{
-              display: 'inline-block',
-              padding: '10px 16px',
-              border: '1px solid #bbb',
-              borderRadius: 8,
-              background: '#111',
-              color: '#fff',
-              textDecoration: 'none',
-            }}
-          >
-            English
-          </Link>
-          <Link
-            to="/react-questions/ru"
-            style={{
-              display: 'inline-block',
-              padding: '10px 16px',
-              border: '1px solid #bbb',
-              borderRadius: 8,
-              background: '#111',
-              color: '#fff',
-              textDecoration: 'none',
-            }}
-          >
-            Русский
-          </Link>
-        </div>
-      </section>
+      {exams.map((exam) => (
+        <section key={exam.enPath} style={{ marginBottom: 32 }}>
+          <h2>{exam.title}</h2>
+          <p style={{ color: '#444' }}>{exam.description}</p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Link to={exam.enPath} style={examLinkStyle}>
+              English
+            </Link>
+            <Link to={exam.ruPath} style={examLinkStyle}>
+              Русский
+            </Link>
+          </div>
+        </section>
+      ))}
 
       <section>
         <h2>React Interview Tasks</h2>
@@ -250,6 +232,10 @@ export function App() {
         <Route path="/questions/ru" element={<QuestionsPage subject="js" locale="ru" />} />
         <Route path="/react-questions" element={<QuestionsPage subject="react" locale="en" />} />
         <Route path="/react-questions/ru" element={<QuestionsPage subject="react" locale="ru" />} />
+        <Route path="/typescript-questions" element={<QuestionsPage subject="typescript" locale="en" />} />
+        <Route path="/typescript-questions/ru" element={<QuestionsPage subject="typescript" locale="ru" />} />
+        <Route path="/state-managers-questions" element={<QuestionsPage subject="state-managers" locale="en" />} />
+        <Route path="/state-managers-questions/ru" element={<QuestionsPage subject="state-managers" locale="ru" />} />
         <Route path="/:taskId/solution" element={<SolutionPage />} />
         <Route path="/:taskId" element={<TaskPage />} />
       </Routes>

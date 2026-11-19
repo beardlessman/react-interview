@@ -5,12 +5,16 @@ import jsQuestionsEn from '../data/questions_en.md?raw';
 import jsQuestionsRu from '../data/questions_ru.md?raw';
 import reactQuestionsEn from '../data/react_questions_en.md?raw';
 import reactQuestionsRu from '../data/react_questions_ru.md?raw';
+import typescriptQuestionsEn from '../data/typescript_questions_en.md?raw';
+import typescriptQuestionsRu from '../data/typescript_questions_ru.md?raw';
+import stateManagersQuestionsEn from '../data/state_managers_questions_en.md?raw';
+import stateManagersQuestionsRu from '../data/state_managers_questions_ru.md?raw';
 import { parseQuestionsMarkdown, type QuestionItem } from './parseQuestions';
 import './questions.css';
 import './markdown.css';
 
 type QuestionsLocale = 'en' | 'ru';
-type QuestionsSubject = 'js' | 'react';
+export type QuestionsSubject = 'js' | 'react' | 'typescript' | 'state-managers';
 
 type QuizQuestion = {
   key: string;
@@ -29,6 +33,14 @@ const catalog = {
   react: {
     en: parseQuestionsMarkdown(reactQuestionsEn),
     ru: parseQuestionsMarkdown(reactQuestionsRu),
+  },
+  typescript: {
+    en: parseQuestionsMarkdown(typescriptQuestionsEn),
+    ru: parseQuestionsMarkdown(typescriptQuestionsRu),
+  },
+  'state-managers': {
+    en: parseQuestionsMarkdown(stateManagersQuestionsEn),
+    ru: parseQuestionsMarkdown(stateManagersQuestionsRu),
   },
 } as const;
 
