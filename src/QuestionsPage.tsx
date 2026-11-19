@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import questionsEn from '../data/questions_en.md?raw';
-import questionsRu from '../data/questions_ru.md?raw';
+import jsQuestionsEn from '../data/questions_en.md?raw';
+import jsQuestionsRu from '../data/questions_ru.md?raw';
+import reactQuestionsEn from '../data/react_questions_en.md?raw';
+import reactQuestionsRu from '../data/react_questions_ru.md?raw';
 import { parseQuestionsMarkdown, type QuestionItem } from './parseQuestions';
 import './questions.css';
 import './markdown.css';
 
 type QuestionsLocale = 'en' | 'ru';
+type QuestionsSubject = 'js' | 'react';
 
 type QuizQuestion = {
   key: string;
@@ -18,9 +21,15 @@ type QuizQuestion = {
   translation?: QuestionItem;
 };
 
-const questionsByLocale = {
-  en: parseQuestionsMarkdown(questionsEn),
-  ru: parseQuestionsMarkdown(questionsRu),
+const catalog = {
+  js: {
+    en: parseQuestionsMarkdown(jsQuestionsEn),
+    ru: parseQuestionsMarkdown(jsQuestionsRu),
+  },
+  react: {
+    en: parseQuestionsMarkdown(reactQuestionsEn),
+    ru: parseQuestionsMarkdown(reactQuestionsRu),
+  },
 } as const;
 
 const uiByLocale = {
@@ -29,8 +38,8 @@ const uiByLocale = {
     contents: 'Contents',
     contentsAria: 'Categories',
     randomQuestion: 'Random question',
-    anotherQuestion: 'Ещё вопрос',
-    close: 'Закрыть',
+    anotherQuestion: 'Another question',
+    close: 'Close',
     category: 'Category',
   },
   ru: {
@@ -169,7 +178,14 @@ function RandomQuestionModal({
   );
 }
 
-export function QuestionsPage({ locale }: { locale: QuestionsLocale }) {
+export function QuestionsPage({
+  locale,
+  subject = 'js',
+}: {
+  locale: QuestionsLocale;
+  subject?: QuestionsSubject;
+}) {
+  const questionsByLocale = catalog[subject];
   const { title, description, sections } = questionsByLocale[locale];
   const ui = uiByLocale[locale];
   const canTranslate = locale === 'en';

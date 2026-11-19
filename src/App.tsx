@@ -102,6 +102,41 @@ function HomePage() {
         </div>
       </section>
 
+      <section style={{ marginBottom: 32 }}>
+        <h2>React Questions</h2>
+        <p style={{ color: '#444' }}>React theory exam with expandable answers.</p>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Link
+            to="/react-questions"
+            style={{
+              display: 'inline-block',
+              padding: '10px 16px',
+              border: '1px solid #bbb',
+              borderRadius: 8,
+              background: '#111',
+              color: '#fff',
+              textDecoration: 'none',
+            }}
+          >
+            English
+          </Link>
+          <Link
+            to="/react-questions/ru"
+            style={{
+              display: 'inline-block',
+              padding: '10px 16px',
+              border: '1px solid #bbb',
+              borderRadius: 8,
+              background: '#111',
+              color: '#fff',
+              textDecoration: 'none',
+            }}
+          >
+            Русский
+          </Link>
+        </div>
+      </section>
+
       <section>
         <h2>React Interview Tasks</h2>
         <p style={{ color: '#444' }}>Выберите задание:</p>
@@ -211,8 +246,10 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/questions" element={<QuestionsPage locale="en" />} />
-        <Route path="/questions/ru" element={<QuestionsPage locale="ru" />} />
+        <Route path="/questions" element={<QuestionsPage subject="js" locale="en" />} />
+        <Route path="/questions/ru" element={<QuestionsPage subject="js" locale="ru" />} />
+        <Route path="/react-questions" element={<QuestionsPage subject="react" locale="en" />} />
+        <Route path="/react-questions/ru" element={<QuestionsPage subject="react" locale="ru" />} />
         <Route path="/:taskId/solution" element={<SolutionPage />} />
         <Route path="/:taskId" element={<TaskPage />} />
       </Routes>
