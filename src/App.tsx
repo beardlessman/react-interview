@@ -4,7 +4,7 @@ import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from 'react-r
 import { QuestionsPage } from './QuestionsPage';
 import './markdown.css';
 
-const taskModules = import.meta.glob('../tasks/*.tsx', { eager: true }) as Record<
+const taskModules = import.meta.glob('../problems/*.tsx', { eager: true }) as Record<
   string,
   Record<string, unknown>
 >;

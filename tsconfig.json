@@ -14,5 +14,5 @@
     "strict": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "tasks", "answers", "data"]
+  "include": ["src", "problems", "answers", "data"]
 }
