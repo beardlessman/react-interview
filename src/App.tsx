@@ -4,7 +4,26 @@ import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from 'react-r
 import { QuestionsPage } from './QuestionsPage';
 import './markdown.css';
 
-const taskModules = import.meta.glob('../problems/*.tsx', { eager: true }) as Record<
+type TaskItem = {
+  id: string;
+  Component: ComponentType;
+};
+
+type TaskCollection = {
+  key: 'problems' | 'tasks';
+  title: string;
+  description: string;
+  basePath: string;
+  items: TaskItem[];
+  byId: Record<string, TaskItem>;
+};
+
+const problemModules = import.meta.glob('../problems/*.{tsx,jsx}', { eager: true }) as Record<
+  string,
+  Record<string, unknown>
+>;
+
+const taskModules = import.meta.glob('../tasks/*.{tsx,jsx}', { eager: true }) as Record<
   string,
   Record<string, unknown>
 >;
@@ -14,11 +33,6 @@ const answerModules = import.meta.glob('../answers/*.md', {
   query: '?raw',
   import: 'default',
 }) as Record<string, string>;
-
-type Task = {
-  id: string;
-  Component: ComponentType;
-};
 
 function getComponent(module: Record<string, unknown>): ComponentType | null {
   if (typeof module.default === 'function') {
@@ -30,19 +44,55 @@ function getComponent(module: Record<string, unknown>): ComponentType | null {
 }
 
 function fileIdFromPath(path: string) {
-  return path.split('/').pop()?.replace(/\.(tsx|md)$/, '') ?? path;
+  return path.split('/').pop()?.replace(/\.(tsx|jsx|md)$/, '') ?? path;
 }
 
-const tasks: Task[] = Object.entries(taskModules)
-  .map(([path, module]) => {
-    const id = fileIdFromPath(path);
-    const Component = getComponent(module);
-    return Component ? { id, Component } : null;
-  })
-  .filter((task): task is Task => task !== null)
-  .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+function loadTaskItems(modules: Record<string, Record<string, unknown>>): TaskItem[] {
+  return Object.entries(modules)
+    .map(([path, module]) => {
+      const id = fileIdFromPath(path);
+      const Component = getComponent(module);
+      return Component ? { id, Component } : null;
+    })
+    .filter((task): task is TaskItem => task !== null)
+    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+}
 
-const tasksById = Object.fromEntries(tasks.map((task) => [task.id, task]));
+function createCollection(
+  key: TaskCollection['key'],
+  title: string,
+  description: string,
+  modules: Record<string, Record<string, unknown>>,
+): TaskCollection {
+  const items = loadTaskItems(modules);
+  return {
+    key,
+    title,
+    description,
+    basePath: `/${key}`,
+    items,
+    byId: Object.fromEntries(items.map((item) => [item.id, item])),
+  };
+}
+
+const collections: TaskCollection[] = [
+  createCollection(
+    'problems',
+    'Problems',
+    'Компоненты из директории problems.',
+    problemModules,
+  ),
+  createCollection(
+    'tasks',
+    'Tasks',
+    'Компоненты из директории tasks.',
+    taskModules,
+  ),
+];
+
+const collectionsByKey = Object.fromEntries(
+  collections.map((collection) => [collection.key, collection]),
+) as Record<TaskCollection['key'], TaskCollection>;
 
 const answersById = Object.fromEntries(
   Object.entries(answerModules).map(([path, content]) => [fileIdFromPath(path), content]),
@@ -125,35 +175,31 @@ function HomePage() {
         </section>
       ))}
 
-      <section>
-        <h2>React Interview Tasks</h2>
-        <p style={{ color: '#444' }}>Выберите задание:</p>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {tasks.map((task) => (
-            <Link
-              key={task.id}
-              to={`/${task.id}`}
-              style={{
-                padding: '10px 16px',
-                border: '1px solid #bbb',
-                borderRadius: 8,
-                background: '#111',
-                color: '#fff',
-                textDecoration: 'none',
-              }}
-            >
-              {task.id}
-            </Link>
-          ))}
-        </div>
-      </section>
+      {collections.map((collection) => (
+        <section key={collection.key} style={{ marginBottom: 32 }}>
+          <h2>{collection.title}</h2>
+          <p style={{ color: '#444' }}>{collection.description}</p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {collection.items.map((item) => (
+              <Link
+                key={item.id}
+                to={`${collection.basePath}/${item.id}`}
+                style={examLinkStyle}
+              >
+                {item.id}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
     </main>
   );
 }
 
-function TaskPage() {
+function TaskPage({ collectionKey }: { collectionKey: TaskCollection['key'] }) {
   const { taskId = '' } = useParams();
-  const task = tasksById[taskId];
+  const collection = collectionsByKey[collectionKey];
+  const task = collection.byId[taskId];
 
   if (!task) {
     return <Navigate to="/" replace />;
@@ -177,9 +223,11 @@ function TaskPage() {
         <Link to="/" style={linkStyle}>
           ← Все задания
         </Link>
-        <strong style={{ flex: 1 }}>{task.id}</strong>
+        <strong style={{ flex: 1 }}>
+          {collection.title}: {task.id}
+        </strong>
         {hasSolution ? (
-          <Link to={`/${task.id}/solution`} style={buttonLinkStyle}>
+          <Link to={`${collection.basePath}/${task.id}/solution`} style={buttonLinkStyle}>
             Подсказка
           </Link>
         ) : null}
@@ -196,13 +244,14 @@ function normalizeMarkdown(content: string) {
     .replace(/```\s*\n(tsx|ts|jsx|js|css|html|bash|json)\n/g, '```$1\n');
 }
 
-function SolutionPage() {
+function SolutionPage({ collectionKey }: { collectionKey: TaskCollection['key'] }) {
   const { taskId = '' } = useParams();
-  const task = tasksById[taskId];
+  const collection = collectionsByKey[collectionKey];
+  const task = collection.byId[taskId];
   const content = answersById[taskId];
 
   if (!task || content === undefined) {
-    return <Navigate to={task ? `/${task.id}` : '/'} replace />;
+    return <Navigate to={task ? `${collection.basePath}/${task.id}` : '/'} replace />;
   }
 
   return (
@@ -217,10 +266,12 @@ function SolutionPage() {
           background: '#f7f7f7',
         }}
       >
-        <Link to={`/${task.id}`} style={linkStyle}>
+        <Link to={`${collection.basePath}/${task.id}`} style={linkStyle}>
           ← К заданию
         </Link>
-        <strong>Подсказка: {task.id}</strong>
+        <strong>
+          Подсказка: {collection.title}/{task.id}
+        </strong>
       </nav>
       <article className="markdown">
         <ReactMarkdown>{normalizeMarkdown(content)}</ReactMarkdown>
@@ -244,8 +295,11 @@ export function App() {
         <Route path="/state-managers-questions/ru" element={<QuestionsPage subject="state-managers" locale="ru" />} />
         <Route path="/frontend-questions" element={<QuestionsPage subject="frontend" locale="en" />} />
         <Route path="/frontend-questions/ru" element={<QuestionsPage subject="frontend" locale="ru" />} />
-        <Route path="/:taskId/solution" element={<SolutionPage />} />
-        <Route path="/:taskId" element={<TaskPage />} />
+        <Route path="/problems/:taskId/solution" element={<SolutionPage collectionKey="problems" />} />
+        <Route path="/problems/:taskId" element={<TaskPage collectionKey="problems" />} />
+        <Route path="/tasks/:taskId/solution" element={<SolutionPage collectionKey="tasks" />} />
+        <Route path="/tasks/:taskId" element={<TaskPage collectionKey="tasks" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
